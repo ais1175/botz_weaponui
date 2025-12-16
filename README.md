@@ -13,7 +13,7 @@ A futuristic, standalone weapon UI for FiveM that displays ammo count and a segm
 
 ## Dependencies
 
--   [ox_lib](https://github.com/overextended/ox_lib) (Required for the customization menu)
+-   [ox_lib](https://github.com/communityox/ox_lib) (Required for the customization menu)
 
 ## Installation
 
@@ -41,3 +41,4 @@ Config.DefaultProgressBarColor = "#00f0ff"
 
 -   **Author**: Botz
 -   **Version**: 1.0.0
+
