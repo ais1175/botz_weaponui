@@ -40,7 +40,6 @@ local function ShowUI()
         type = "toggle",
         show = true
     })
-    -- Force style update on show just in case
     SendNUIMessage({
         type = "updateStyle",
         ammoColor = runtimeConfig.ammoColor,
@@ -66,9 +65,7 @@ Citizen.CreateThread(function()
             -- Get Ammo Data
             local _, ammoClip = GetAmmoInClip(ped, currentWeapon)
             local maxClip = GetMaxAmmoInClip(ped, currentWeapon, 1)
-            -- local totalAmmo = GetAmmoInPedWeapon(ped, currentWeapon) -- Removed as per request
             
-            -- Get Coordinates
             -- 60309 = Right Hand
             local boneCoords = GetPedBoneCoords(ped, 60309, 0.0, 0.0, 0.0)
             local onScreen, screenX, screenY = GetScreenCoordFromWorldCoord(boneCoords.x, boneCoords.y, boneCoords.z)
@@ -90,8 +87,6 @@ Citizen.CreateThread(function()
             Wait(runtimeConfig.uiWait)
         else
             HideUI()
-            -- Wait longer if not equipped to save perf? 
-            -- No, this thread handles updates. If not equipped, we wait for state change.
             Wait(40) 
         end
     end
@@ -170,3 +165,4 @@ if Config.AllowUserCustomization then
         })
     end)
 end
+
