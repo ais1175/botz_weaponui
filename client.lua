@@ -7,7 +7,8 @@ local runtimeConfig = {
     ammoColor = Config.DefaultAmmoColor,
     progressColor = Config.DefaultProgressBarColor,
     weaponWait = Config.WeaponCheckWait,
-    uiWait = Config.UiUpdateWait
+    uiWait = Config.UiUpdateWait,
+    isUiShowedOnPlayerFreeAim = Config.ShouldPlayerFreeAim
 }
 
 local function DebugPrint(msg)
@@ -23,6 +24,10 @@ local function LoadSettings()
     
     if kvpAmmo then runtimeConfig.ammoColor = kvpAmmo end
     if kvpProg then runtimeConfig.progressColor = kvpProg end
+
+    local kvpAim = GetResourceKvpInt("botz_weaponui_aim_only")
+    if kvpAim == 1 then runtimeConfig.isUiShowedOnPlayerFreeAim = true 
+    elseif kvpAim == 0 then runtimeConfig.isUiShowedOnPlayerFreeAim = false end
     
     -- Send updated styling to UI
     SendNUIMessage({
@@ -32,7 +37,6 @@ local function LoadSettings()
     })
 end
 
--- Show/Hide Logic
 local function ShowUI()
     if uiVisible then return end
     uiVisible = true
@@ -56,33 +60,40 @@ local function HideUI()
     })
 end
 
--- UI Loop (High Frequency)
 Citizen.CreateThread(function()
     while true do
         if isEquipped and currentWeapon then
             local ped = PlayerPedId()
             
-            -- Get Ammo Data
             local _, ammoClip = GetAmmoInClip(ped, currentWeapon)
             local maxClip = GetMaxAmmoInClip(ped, currentWeapon, 1)
-            
             -- 60309 = Right Hand
             local boneCoords = GetPedBoneCoords(ped, 60309, 0.0, 0.0, 0.0)
             local onScreen, screenX, screenY = GetScreenCoordFromWorldCoord(boneCoords.x, boneCoords.y, boneCoords.z)
             
             if onScreen then
-                if not uiVisible then ShowUI() end
-                
-                SendNUIMessage({
-                    type = "update",
-                    ammoClip = ammoClip,
-                    maxClip = maxClip,
-                    x = screenX,
-                    y = screenY
-                })
+                local shouldShow = true
+                if runtimeConfig.isUiShowedOnPlayerFreeAim then
+                   shouldShow = IsPlayerFreeAiming(PlayerId())
+                end
+
+                if shouldShow then
+                    if not uiVisible then ShowUI() end
+                    
+                    SendNUIMessage({
+                        type = "update",
+                        ammoClip = ammoClip,
+                        maxClip = maxClip,
+                        x = screenX,
+                        y = screenY
+                    })
+                else
+                    HideUI()
+                end
             else
                 HideUI()
             end
+
             
             Wait(runtimeConfig.uiWait)
         else
@@ -91,6 +102,24 @@ Citizen.CreateThread(function()
         end
     end
 end)
+
+-- Citizen.CreateThread(function()
+--     while true do
+--         Wait(0)
+
+--         local ped = PlayerPedId()
+
+--         local isAiming = IsPlayerFreeAiming(PlayerId())
+--         local isShooting = IsPedShooting(ped)
+
+--         if isAiming and isShooting then
+--             -- Player is focused shooting
+--             print("Focused shooting")
+--         end
+--     end
+-- end)
+
+-- local retval = IsPlayerFreeAiming(PlayerPedId())
 
 -- Weapon Check Loop (Low Frequency)
 Citizen.CreateThread(function()
@@ -130,6 +159,12 @@ if Config.AllowUserCustomization then
                 description = 'Color of ammo bar segments',
                 default = runtimeConfig.progressColor or Config.DefaultProgressBarColor
             },
+
+            {
+                type = 'checkbox',
+                label = 'Show only when aiming',
+                checked = runtimeConfig.isUiShowedOnPlayerFreeAim
+            },
             {
                 type = 'checkbox',
                 label = 'Reset to default colors'
@@ -140,14 +175,25 @@ if Config.AllowUserCustomization then
 
         local ammoColor = input[1]
         local progressColor = input[2]
-        if input[3] then
+        local onlyAim = input[3]
+        local reset = input[4]
+
+        if reset then
             DeleteResourceKvp("botz_weaponui_ammo_color")
             DeleteResourceKvp("botz_weaponui_progress_color")
+            DeleteResourceKvp("botz_weaponui_aim_only")
 
             runtimeConfig.ammoColor = Config.DefaultAmmoColor
             runtimeConfig.progressColor = Config.DefaultProgressBarColor
+            runtimeConfig.isUiShowedOnPlayerFreeAim = Config.ShouldPlayerFreeAim
+            
             ammoColor = Config.DefaultAmmoColor
             progressColor = Config.DefaultProgressBarColor
+            onlyAim = Config.ShouldPlayerFreeAim
+        else
+             -- Update Aim Setting
+            runtimeConfig.isUiShowedOnPlayerFreeAim = onlyAim
+            SetResourceKvpInt("botz_weaponui_aim_only", onlyAim and 1 or 0)
         end
 
         -- Persist to KVP
@@ -165,4 +211,3 @@ if Config.AllowUserCustomization then
         })
     end)
 end
-
