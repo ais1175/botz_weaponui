@@ -14,14 +14,7 @@ window.addEventListener('message', (event) => {
         }
 
         if (data.progressColor) {
-            // Updated dynamically in loop, so we store global config?
-            // Or just update css variables?
-            // CSS Variables are best.
             document.documentElement.style.setProperty('--progress-color', data.progressColor);
-
-            // Also need to update segments active color logic if hardcoded in JS
-            // See "active" class logic below. 
-            // We can use CSS variable in CSS for .active
         }
     }
 
@@ -43,10 +36,15 @@ window.addEventListener('message', (event) => {
         const barContainer = document.getElementById('ammo-bar-container');
         const currentMax = parseInt(barContainer.getAttribute('data-max') || '0');
 
+        const MAX_SEGMENTS = 50;
+        let segmentsToCreate = maxClip;
+        if (maxClip > MAX_SEGMENTS) {
+            segmentsToCreate = MAX_SEGMENTS;
+        }
+
         if (currentMax !== maxClip) {
             barContainer.innerHTML = '';
             barContainer.setAttribute('data-max', maxClip);
-            const segmentsToCreate = maxClip > 100 ? 100 : maxClip;
             for (let i = 0; i < segmentsToCreate; i++) {
                 const seg = document.createElement('div');
                 seg.classList.add('segment');
@@ -58,9 +56,15 @@ window.addEventListener('message', (event) => {
         const totalSegments = children.length;
         const isLowAmmo = (ammoClip / maxClip) < 0.25;
 
+        // Calculate how many segments should be lit
+        let activeSegments = ammoClip;
+        if (maxClip > MAX_SEGMENTS) {
+            activeSegments = Math.ceil((ammoClip / maxClip) * MAX_SEGMENTS);
+        }
+
         for (let i = 0; i < totalSegments; i++) {
             const seg = children[i];
-            if (i < ammoClip) {
+            if (i < activeSegments) {
                 seg.classList.add('active');
                 if (isLowAmmo) {
                     seg.classList.add('low-ammo');
